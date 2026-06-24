@@ -1,0 +1,1132 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>世界管理プロトタイプ v21</title>
+
+<style>
+/* 🎨 全体の設定 */
+body {
+    font-family: sans-serif;
+    margin: 0;
+    background: #ffffff;
+    color: #000000;
+}
+
+/* 🎨 トップページ専用の背景設定（可変対応） */
+#top {
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    min-height: 100vh;
+    box-sizing: border-box;
+}
+
+/* 🎨 ヘッダー */
+header {
+    text-align: center;
+    border-bottom: 2px solid #000;
+    padding: 12px 0;
+    font-size: 1.3rem;
+    font-weight: bold;
+}
+
+/* 🎨 ボタンのデザイン */
+.menu-btn {
+    display: block;
+    width: 100%;
+    border: 2px solid #000;
+    border-radius: 15px;
+    background: #ffffff;
+    padding: 14px;
+    font-size: 1.1rem;
+    font-weight: bold;
+    text-align: center;
+    cursor: pointer;
+    margin-bottom: 15px;
+    box-sizing: border-box;
+    color: #000;
+    text-decoration: none;
+}
+
+.menu-btn:active {
+    background: #e0e0e0;
+}
+
+/* 🎨 白いボックス */
+.box-frame, .box {
+    border: 2px solid #000;
+    border-radius: 15px;
+    padding: 15px;
+    margin-bottom: 15px;
+    background: rgba(255, 255, 255, 0.95);
+}
+
+/* 🎨 削除ボタン（赤色） */
+.world-delete-btn, .country-delete-btn {
+    color: red;
+    border: 1px solid red;
+    background: #ffffff;
+    cursor: pointer;
+    padding: 5px 10px;
+    border-radius: 5px;
+    font-weight: bold;
+}
+
+/* 🎨 国旗の並び（グリッド） */
+.flag-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 12px;
+}
+
+/* --- システム用の基本設定 --- */
+.container { padding: 16px; max-width: 500px; margin: 0 auto; }
+
+/* 🛠️ 重なりバグ修正 */
+.page { display: none !important; }
+.page.active { display: block !important; }
+
+.flex-btns { display: flex; gap: 10px; }
+.flex-btns .menu-btn { flex: 1; }
+.flex-space { display: flex; justify-content: space-between; align-items: center; }
+.small-text { font-size: 12px; color: #666; }
+.edit-header-area { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+.region-section-title { font-size: 14px; font-weight: bold; color: #000; margin: 15px 0 8px 0; padding-left: 5px; border-left: 3px solid #000; }
+.flag-cell { text-align: center; font-size: 2.3rem; position: relative; padding-bottom: 15px; display: flex; flex-direction: column; align-items: center; }
+.flag-icon-click { cursor: pointer; user-select: none; }
+.flag-cell .plus-badge { position: absolute; top: 24px; font-size: 0.8rem; font-weight: bold; color: red; pointer-events: none; }
+
+/* 🖼️ イラスト倉庫 */
+.fa-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-top: 15px; }
+.fa-card { border: 2px solid #000; border-radius: 12px; overflow: hidden; background: #fff; position: relative; cursor: pointer; aspect-ratio: 1 / 1; }
+.fa-image-container { width: 100%; height: 100%; background: #f0f0f0; display: flex; align-items: center; justify-content: center; }
+.fa-image-container img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.fa-delete-badge { position: absolute; top: 5px; right: 5px; background: rgba(255, 255, 255, 0.9); color: red; border: 1px solid red; border-radius: 4px; padding: 2px 6px; font-size: 11px; cursor: pointer; font-weight: bold; z-index: 10; }
+
+/* 🔍 画像全画面拡大 */
+.lightbox-overlay { display: none !important; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.9); justify-content: center; align-items: center; z-index: 2000; flex-direction: column; padding: 20px; box-sizing: border-box; }
+.lightbox-overlay.active { display: flex !important; }
+.lightbox-content-wrap { position: relative; max-width: 100%; max-height: 80%; display: flex; flex-direction: column; align-items: center; }
+.lightbox-img { max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 5px; }
+.lightbox-caption { color: #fff; margin-top: 15px; font-size: 14px; text-align: center; font-weight: bold; word-break: break-all; max-width: 90%; white-space: pre-wrap; }
+.lightbox-close-btn { position: absolute; top: -40px; right: 0; color: #fff; font-size: 30px; font-weight: bold; cursor: pointer; background: none; border: none; user-select: none; }
+
+/* 📦 モーダル用 */
+.modal-overlay { display: none !important; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 1000; }
+.modal-overlay.active { display: flex !important; }
+.modal-box { background: #fff; border: 2px solid #000; padding: 20px; text-align: center; width: 80%; max-width: 300px; border-radius: 10px; }
+.modal-box input, .modal-box textarea { width: 90%; padding: 8px; margin: 10px 0; border: 2px solid #000; border-radius: 8px; box-sizing: border-box; }
+.modal-box input { text-align: center; }
+.modal-box textarea { height: 80px; resize: none; font-family: sans-serif; }
+.modal-flex { display: flex; justify-content: space-around; margin-top: 15px; }
+.modal-btn { border: 1px solid #000; background: #fff; padding: 5px 15px; cursor: pointer; border-radius: 5px; }
+
+/* 総合管理者用フッター */
+.admin-footer { border-top: 1px solid #ccc; padding-top: 10px; margin-top: 30px; font-size: 13px; background: #fff; padding: 10px; border-radius: 10px; text-align: center; }
+.admin-footer input { border: 1px solid #000; padding: 3px; width: 100px; }
+
+/* 💾 データ管理 */
+.backup-section { margin-top: 25px; border: 2px solid #000; padding: 12px; border-radius: 15px; background: rgba(250, 250, 250, 0.95); }
+.backup-title { font-size: 14px; font-weight: bold; margin-bottom: 8px; text-align: center; color: #000; }
+.backup-btn-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px; }
+.backup-sub-btn { border: 2px solid #000; border-radius: 8px; padding: 8px; font-size: 12px; font-weight: bold; background: #fff; cursor: pointer; text-align: center; display: block; width: 100%; box-sizing: border-box; }
+.backup-sub-btn:active { background: #eee; }
+.storage-info { font-size: 11px; color: #333; text-align: center; font-weight: bold; }
+.storage-bar-bg { background: #e0e0e0; height: 6px; border-radius: 3px; margin-top: 4px; overflow: hidden; border: 1px solid #000; }
+.storage-bar-fill { background: #4caf50; height: 100%; width: 0%; transition: width 0.3s ease; }
+
+/* 📋 企画掲示板用 */
+.board-card { border: 2px solid #000; border-radius: 12px; background: #fff; padding: 12px; margin-bottom: 12px; position: relative; text-align: left; }
+.board-card.pinned { border-color: #ff9800; background: #fffde6; }
+.board-badge { display: inline-block; font-size: 10px; font-weight: bold; padding: 2px 6px; border-radius: 4px; margin-bottom: 6px; }
+.board-badge.pin-badge { background: #ff9800; color: #fff; border: 1px solid #ff9800; }
+.board-badge.user-badge { background: #eee; color: #333; border: 1px solid #999; }
+.board-meta { display: flex; justify-content: space-between; font-size: 11px; color: #666; margin-top: 8px; border-top: 1px dashed #eee; padding-top: 4px; }
+.board-body { font-size: 14px; white-space: pre-wrap; word-break: break-all; }
+.board-delete-btn { color: red; border: 1px solid red; background: #fff; border-radius: 4px; padding: 1px 6px; font-size: 11px; cursor: pointer; font-weight: bold; }
+
+/* 📝 文字数カウンター・共通 */
+.char-counter { text-align: right; font-size: 11px; color: #666; margin-top: 2px; margin-bottom: 5px; font-weight: bold; }
+textarea { width: 100%; height: 100%; box-sizing: border-box; border: 2px solid #000; border-radius: 8px; padding: 8px; resize: none; font-family: sans-serif; }
+.relation-row { display: flex; gap: 5px; margin-bottom: 5px; align-items: center; }
+
+/* =========================================================
+   🆕 サイズ・バランス調整版（v21修正）
+   ========================================================= */
+/* 画面全体の高さを固定せず、下へ自由に伸びるように解放 */
+.fixed-dashboard-layout.active {
+    display: flex !important;
+    flex-direction: column;
+    height: auto !important; /* 👈 高さを解放してバグを防止 */
+    min-height: 100vh;
+    box-sizing: border-box;
+    padding: 10px;
+    gap: 15px;
+}
+
+.dashboard-main-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+/* 🥇 1段目: 最も大きく目立たせる（比率 1 : 1 : 1） */
+.row-grid-1 {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr; 
+    gap: 10px;
+}
+/* 1段目の画像（主役なのでしっかり大きく見せる） */
+.row-grid-1 .single-image-wrapper {
+    aspect-ratio: 3 / 4;
+    width: 100%;
+    height: auto;
+}
+
+/* 🥈 2段目: 1段目より小さく（画像と歴史はコンパクトに、関係表を広めの比率 1 : 1 : 2） */
+.row-grid-2 {
+    display: grid;
+    grid-template-columns: 0.7fr 0.7fr 1.4fr; /* 👈 全体的に数値を小さくしてコンパクト化 */
+    gap: 10px;
+}
+.sub-vertical-image-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+/* 2段目の画像（正方形でかなり小さめに設定） */
+.row-grid-2 .single-image-wrapper {
+    aspect-ratio: 1 / 1;
+    width: 100%;
+    height: auto;
+}
+
+/* 🥉 3段目: 備考を広く、画像側を二列目の正方形と同じくらいのサイズ感に（比率 2 : 1.5） */
+.row-grid-3 {
+    display: grid;
+    grid-template-columns: 2fr 1.5fr 0fr; 
+    gap: 10px;
+}
+.sub-horizontal-image-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+/* 3段目の画像（サイズが大きくなりすぎないよう横幅を最大75%に制限） */
+.row-grid-3 .single-image-wrapper {
+    aspect-ratio: 4 / 3;
+    width: 100%; /* 👈 2段目の正方形の横幅のサイズ感に合わせる調整 */
+    height: auto;
+}
+
+/* 共通スクロールボックス（高さ固定を外し、中身に応じて広がるように） */
+.scroll-box {
+    display: flex;
+    flex-direction: column;
+    border: 2px solid #000;
+    border-radius: 12px;
+    padding: 10px;
+    background: rgba(255, 255, 255, 0.95);
+    box-sizing: border-box;
+    min-height: 120px; /* 最低限の使いやすい高さを確保 */
+}
+
+/* 🖼️ 画像枠共通のクリッピング（余白なし仕様） */
+.single-image-wrapper {
+    background: #f0f0f0;
+    border: 2px solid #000;
+    border-radius: 12px;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-sizing: border-box;
+    position: relative;
+    max-height: 100%;
+    max-width: 100%;
+}
+.single-image-wrapper img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover; /* 枠いっぱいに広げる */
+    display: block;
+}
+.single-image-wrapper .dummy-txt {
+    font-size: 11px;
+    color: #888;
+    text-align: center;
+}
+.single-image-wrapper .img-delete-btn {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    background: red;
+    color: #fff;
+    border-radius: 50%;
+    width: 18px;
+    height: 18px;
+    font-size: 11px;
+    line-height: 18px;
+    text-align: center;
+    cursor: pointer;
+    font-weight: bold;
+    z-index: 5;
+}
+
+.area-settings {
+    background: #fffde6;
+    border: 2px solid #e6db55;
+    border-radius: 12px;
+    padding: 6px 12px;
+    box-sizing: border-box;
+    margin-bottom: 5px;
+}
+
+.dashboard-footer {
+    display: flex;
+    gap: 10px;
+    margin: 0;
+}
+.dashboard-footer .menu-btn {
+    margin-bottom: 0;
+}
+
+/* 💞設定ボタンのエリアを縦並び（縦書き）にする💞 */
+.area-settings {
+    display: flex !important;
+    flex-direction: column !important; /* ボタン同士を上から下に並べる */
+    justify-content: center !important;
+    align-items: center !important;
+    gap: 30px !important; /* ボタン同士の上下の間隔 */
+    padding: 15px 10px !important;
+    box-sizing: border-box !important;
+    background: #fffde6 !important;
+    border: 2px solid #e6db55 !important;
+    border-radius: 12px;
+    width: 65px !important; /* 黄色い枠の横幅 */
+    margin-left: auto !important;
+}
+
+/* ラベル（文字とボタンが同じ縦書きの1行になるように設定） */
+.area-settings label {
+    display: inline-block !important; /* 💥文字と同じ行にボタンを同居させる */
+    font-size: 16px !important; /* 文字をしっかり大きく */
+    font-weight: bold !important;
+    cursor: pointer !important;
+    
+    /* 文字を日本語の縦書きモードにする */
+    writing-mode: vertical-rl !important;
+    text-orientation: upright !important;
+    white-space: nowrap !important;
+    text-align: center !important;
+}
+
+/* 💞チェックボックスを文字のすぐ後ろ（縦書きなので下）に結合💞 */
+.area-settings input[type="checkbox"] {
+    display: inline-block !important; /* 💥文字と同じ1行の扱いにする */
+    margin-bottom: 10px !important; /* 文字のすぐ上に作る隙間 */
+    margin-top: 10px !important; /* 文字のすぐ下に作る隙間 */
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    cursor: pointer !important;
+    transform: scale(1.4) !important; /* チェックボックスを1.4倍に拡大 */
+}
+</style>
+</head>
+<body>
+
+<div id="top" class="page active">
+    <div class="container">
+        <header>国家系創作支援サイト</header>
+        <br>
+        <div class="box-frame">
+            <div style="font-weight: bold; margin-bottom: 5px;">はじめに！</div>
+            <div id="admin-info-area">
+                <p id="admin-info-text" style="text-align: center; color: #000; font-weight: bold; margin: 20px 0; white-space: pre-wrap;">※文字欄\n（総合管理者専用）</p>
+            </div>
+        </div>
+        
+        <button class="menu-btn" onclick="renderWorlds(); show('worlds')">みんなの世界</button>
+        
+        <div class="flex-btns">
+            <button class="menu-btn" onclick="show('fa')">イラスト倉庫</button>
+            <button class="menu-btn" onclick="renderEventBoard(); show('event-board')">企画掲示板</button>
+        </div>
+        
+        <button class="menu-btn" onclick="openRandomPage(true)">ランダム国表示</button>
+
+        <div class="backup-section">
+            <div class="backup-title">📦 データ管理（バックアップ・復元）</div>
+            <div style="font-size: 10px; color: red; text-align: center; margin-bottom: 8px; font-weight: bold;">⚠️画像データ・イラスト倉庫はバックアップされません</div>
+            <div class="backup-btn-grid">
+                <button class="backup-sub-btn" onclick="exportDataToJSON()">📤 テキストのみ保存<br>(世界・掲示板など)</button>
+                <label class="backup-sub-btn" style="display: flex; flex-direction: column; justify-content: center; align-items: center; cursor: pointer;">
+                    📥 データを読込<br>(インポート)
+                    <input type="file" id="importJsonInput" accept=".json" style="display:none;" onchange="importDataFromJSON(event)">
+                </label>
+            </div>
+            
+            <div class="storage-info" id="storage-info-area" style="display: none;">
+                現在のブラウザ保存容量：<span id="storage-text">0.00MB / 5MB</span>
+                <div class="storage-bar-bg"><div id="storage-bar" class="storage-bar-fill"></div></div>
+                <div style="margin-top: 10px; text-align: left; padding: 5px 10px; background: #f5f5f5; border: 1px dashed #000; border-radius: 8px; font-size: 10px; color: #333;">
+                    <div style="font-weight: bold; text-align: center; margin-bottom: 3px; border-bottom: 1px solid #ccc;">📂 データ別内訳</div>
+                    <ul style="margin: 0; padding-left: 15px; list-style-type: square; line-height: 1.4;">
+                        <li>みんなの世界 (worldsData): <span id="storage-worlds">0.000 MB</span></li>
+                        <li>イラスト倉庫 (faData): <span id="storage-fa">0.000 MB</span></li>
+                        <li>企画掲示板 (eventBoardData): <span id="storage-board">0.000 MB</span></li>
+                        <li>サイト設定他 (siteSettings): <span id="storage-settings">0.000 MB</span></li>
+                    </ul>
+                </div>
+                <div id="admin-reset-zone" style="margin-top: 12px; display: none;">
+                    <button onclick="systemFullReset()" style="width: 100%; border: 2px dashed red; background: #fffde6; color: red; font-weight: bold; padding: 8px; border-radius: 8px; cursor: pointer; font-size: 11px;">
+                        🚨 【管理者専用】サイト内全データを完全初期化(リセット)
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="admin-footer">
+            総合管理者用 <input type="password" id="adminPass" placeholder="パスワード">
+            <button id="adminToggleBtn" onclick="handleAdminAuth()" style="width:auto; padding:3px 10px; margin:0;">🔒</button>
+            <span id="adminStatus" style="margin-left:5px; color:green; font-weight:bold;"></span>
+        </div>
+    </div>
+</div>
+
+<div class="container">
+    <div id="worlds" class="page">
+        <header>みんなの世界</header><br>
+        <div id="world-list-container"></div>
+        <button class="menu-btn" style="margin-top:20px;" onclick="openCreateWorldModal()">新規作成</button>
+        <button class="menu-btn" style="background:#ccc;" onclick="show('top')">＜ 戻る</button>
+    </div>
+
+    <div id="view-continents" class="page">
+        <header id="view-continents-title">閲覧＜世界の名前</header><br>
+        <div id="view-continents-buttons-container"></div><br>
+        <button class="menu-btn" style="background:#fffde6; border-color:#e6db55;" onclick="openRandomPage(false)">🎲 この世界からランダム国表示</button>
+        <button class="menu-btn" style="background:#ccc;" onclick="renderWorlds(); show('worlds')">＜ 戻る</button>
+    </div>
+
+    <div id="edit-continents" class="page">
+        <div class="edit-header-area">
+            <header id="edit-continents-title" style="border-bottom:none; padding:0; text-align:left; flex:1;">編集＜世界の名前</header>
+            <button class="world-delete-btn" onclick="deleteCurrentWorld()">🗑️ 世界を削除</button>
+        </div><br>
+        <div class="box" style="border: 2px solid #000; margin-bottom: 20px;">
+            <strong>🔑 この世界の編集パスワード設定</strong>
+            <div style="margin-top: 8px; display: flex; gap: 5px;">
+                <input type="password" id="editWorldPassInput" placeholder="新しいパスワード" style="flex: 1; padding: 5px; border: 1px solid #000;">
+                <button onclick="changeWorldPassword()" style="padding: 5px 10px;">変更</button>
+            </div>
+        </div>
+        <div id="edit-continents-buttons-container"></div><br>
+        <button class="menu-btn" style="background:#ccc;" onclick="renderWorlds(); show('worlds')">＜ 戻る</button>
+    </div>
+
+    <div id="view-countries" class="page">
+        <header id="view-countries-title">閲覧＜地域名</header><br>
+        <div id="view-regions-container"></div><br>
+        <button class="menu-btn" style="background:#ccc;" onclick="show('view-continents')">＜ 戻る</button>
+    </div>
+
+    <div id="edit-countries" class="page">
+        <header id="edit-countries-title">編集＜地域名</header><br>
+        <div class="box" style="border: 2px solid #000; text-align: center; background: #fdfdfd;">
+            <strong style="font-size:14px;">国の自由追加</strong>
+            <div id="free-country-slots-container" style="display: flex; flex-wrap: wrap; gap: 5px; justify-content: center; margin-top: 10px;"></div>
+        </div><br>
+        <div class="box" style="border: 2px solid #000;">
+            <strong style="font-size:15px;">🌐 プリセット国の一覧・編集</strong>
+            <div id="edit-regions-container" style="margin-top: 10px;"></div>
+        </div><br>
+        <button class="menu-btn" style="background:#ccc;" onclick="show('edit-continents')">＜ 戻る</button>
+    </div>
+</div>
+
+<div id="country-detail" class="page fixed-dashboard-layout">
+    <header id="detail-country-title" style="border-bottom: 2px solid #000; margin: 0; padding: 6px 0;">〇国</header>
+    
+    <div class="dashboard-main-grid">
+        <div class="row-grid-1">
+            <div id="d-img-slot-0" class="single-image-wrapper"><div class="dummy-txt">画像 1</div></div>
+            <div id="d-img-slot-1" class="single-image-wrapper"><div class="dummy-txt">画像 2</div></div>
+            <div class="scroll-box">
+                <strong>基本情報</strong>
+                <p id="detail-info" style="white-space: pre-wrap; margin: 4px 0 0 0; font-size: 13px; line-height: 1.4;"></p>
+            </div>
+        </div>
+        
+        <div class="row-grid-2">
+            <div class="sub-vertical-image-grid">
+                <div id="d-img-slot-2" class="single-image-wrapper"><div class="dummy-txt">画像 3</div></div>
+                <div id="d-img-slot-3" class="single-image-wrapper"><div class="dummy-txt">画像 4</div></div>
+            </div>
+            <div class="scroll-box">
+                <strong>歴史</strong>
+                <p id="detail-history" style="white-space: pre-wrap; margin: 4px 0 0 0; font-size: 13px; line-height: 1.4;"></p>
+            </div>
+            <div class="scroll-box">
+                <strong>他国との関係表</strong>
+                <div id="detail-relations-container" style="margin-top:4px; font-size:13px; line-height:1.4;"></div>
+            </div>
+        </div>
+
+        <div class="row-grid-3">
+            <div class="scroll-box">
+                <strong>備考欄</strong>
+                <p id="detail-notes" style="white-space: pre-wrap; margin: 4px 0 0 0; font-size: 13px; line-height: 1.4;"></p>
+            </div>
+            <div class="sub-horizontal-image-grid">
+                <div id="d-img-slot-4" class="single-image-wrapper"><div class="dummy-txt">画像 5</div></div>
+                <div id="d-img-slot-5" class="single-image-wrapper"><div class="dummy-txt">画像 6</div></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="dashboard-footer">
+        <button class="menu-btn" style="background:#ccc;" id="detail-back-btn">＜ 戻る</button>
+    </div>
+</div>
+
+<div id="country-form" class="page fixed-dashboard-layout">
+    <header id="form-country-title" style="border-bottom: 2px solid #000; margin: 0; padding: 6px 0;">〇国（編集）</header>
+    
+    <div class="dashboard-main-grid">
+        <div id="form-custom-name-area" style="display: none; flex: 1; margin-left: 5px;">
+                            <input type="text" id="form-custom-name" placeholder="国の名前（最大20文字）" maxlength="20" style="width: 100%; padding: 2px 4px; border: 2px solid #000; border-radius: 6px; font-size: 11px;">
+                        </div>
+        <div class="row-grid-1">
+            <div id="f-img-slot-0" class="single-image-wrapper" onclick="triggerFormFileSlot(0)"></div>
+            <div id="f-img-slot-1" class="single-image-wrapper" onclick="triggerFormFileSlot(1)"></div>
+            <div class="scroll-box">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <strong>基本情報欄</strong>
+                    <div class="char-counter" id="counter-info" style="margin:0;">残り 1500</div>
+                </div>
+                <div style="flex:1; margin-top:4px; min-height:0;">
+                    <textarea id="form-info" maxlength="1500" placeholder="基本情報を入力してください" oninput="syncCounter('form-info', 'counter-info', 1500)"></textarea>
+                </div>
+            </div>
+        </div>
+        
+        <div class="row-grid-2">
+            <div class="sub-vertical-image-grid">
+                <div id="f-img-slot-2" class="single-image-wrapper" onclick="triggerFormFileSlot(2)"></div>
+                <div id="f-img-slot-3" class="single-image-wrapper" onclick="triggerFormFileSlot(3)"></div>
+            </div>
+            <div class="scroll-box">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <strong>歴史欄</strong>
+                    <div class="char-counter" id="counter-history" style="margin:0;">残り 1500</div>
+                </div>
+                <div style="flex:1; margin-top:4px; min-height:0;">
+                    <textarea id="form-history" maxlength="1500" placeholder="歴史を入力してください" oninput="syncCounter('form-history', 'counter-history', 1500)"></textarea>
+                </div>
+            </div>
+            <div class="scroll-box">
+                <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #ccc; padding-bottom:2px;">
+                    <strong>他国との関係</strong>
+                    <button type="button" onclick="addRelationRow('', '')" style="padding:1px 5px; font-size:11px; cursor:pointer;">＋追加</button>
+                </div>
+                <div id="form-relations-list" style="margin-top:4px; overflow-y:auto; flex:1;"></div>
+            </div>
+        </div>
+
+        <div class="row-grid-3">
+            <div class="scroll-box">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <strong>備考欄</strong>
+                    <div class="char-counter" id="counter-notes" style="margin:0;">残り 1500</div>
+                </div>
+                <div style="flex:1; margin-top:2px; min-height:0;">
+                    <textarea id="form-notes" maxlength="1500" placeholder="備考を入力してください" oninput="syncCounter('form-notes', 'counter-notes', 1500)"></textarea>
+                </div>
+            </div>
+<div style="display: flex; gap: 10px; align-items: stretch; width: 100%; height: 100%;">
+    
+    <div class="sub-horizontal-image-grid" style="flex: 1;">
+        <div id="f-img-slot-4" class="single-image-wrapper" onclick="triggerFormFileSlot(4)"></div>
+        <div id="f-img-slot-5" class="single-image-wrapper" onclick="triggerFormFileSlot(5)"></div>
+    </div>
+
+    <div class="area-settings" style="display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 15px; padding: 5px; background: #fffde6; border: 2px solid #e6db55; border-radius: 12px; width: 45px; box-sizing: border-box;">
+        <label style="display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 11px; font-weight: bold; cursor: pointer; writing-mode: vertical-rl; text-orientation: upright; white-space: nowrap;">
+            <input type="checkbox" id="form-is-public" style="margin: 0; cursor: pointer;">公開
+        </label>
+        <label style="display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 11px; font-weight: bold; cursor: pointer; writing-mode: vertical-rl; text-orientation: upright; white-space: nowrap;">
+            <input type="checkbox" id="form-is-random" style="margin: 0; cursor: pointer;">ランダム対象
+        </label>
+    </div>
+
+</div>
+        </div>
+    </div>
+
+    <input type="file" id="dashboard-hidden-file-input" accept=".jpg,.jpeg,.png,.webp" style="display:none;" onchange="handleDashboardFileChange(event)">
+
+    <div class="dashboard-footer">
+        <button class="menu-btn" style="color:green; border-color:green;" onclick="saveCountryData()">保存</button>
+        <button class="menu-btn" style="color:red; border-color:red; background:#fff5f5;" onclick="deleteCountryData()">🗑️ 削除</button>
+        <button class="menu-btn" style="background:#ccc;" onclick="show('edit-countries')">戻る</button>
+    </div>
+</div>
+
+<div class="container">
+    <div id="fa" class="page">
+        <header>イラスト倉庫</header><br>
+        <button class="menu-btn" style="width:auto; float:right; padding:5px 15px; margin:0;" onclick="openFaModal()">＋ イラストを投下</button>
+        <div style="clear:both;"></div>
+        <div id="fa-list-grid" class="fa-grid"></div><br>
+        <button class="menu-btn" style="background:#ccc;" onclick="show('top')">＜ 戻る</button>
+    </div>
+
+    <div id="event-board" class="page">
+        <header>企画掲示板</header><br>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+            <div class="small-text" style="font-weight:bold; color:red;">※イベントや企画の告知・募集枠です</div>
+            <button class="menu-btn" style="width:auto; padding:5px 15px; margin:0;" onclick="openBoardModal(false)">＋ 企画を投稿する</button>
+        </div>
+        <div id="admin-pin-btn-area" style="margin-bottom: 12px; display: none;">
+            <button class="menu-btn" style="border-color: #ff9800; background: #fffde6; padding: 8px; font-size: 13px; color: #ff9800; width:100%;" onclick="openBoardModal(true)">🔶 管理者用 固定投稿を作成/編集</button>
+        </div>
+        <div id="board-list-container"></div><br>
+        <button class="menu-btn" style="background:#ccc;" onclick="show('top')">＜ 戻る</button>
+    </div>
+</div>
+
+<div id="lightboxOverlay" class="lightbox-overlay" onclick="closeLightbox()">
+    <div class="lightbox-content-wrap" onclick="event.stopPropagation()">
+        <button class="lightbox-close-btn" onclick="closeLightbox()">✕</button>
+        <img id="lightboxImg" class="lightbox-img" src="" alt="拡大画像">
+        <div id="lightboxCaption" class="lightbox-caption"></div>
+    </div>
+</div>
+
+<div id="create-world-modal" class="modal-overlay"><div class="modal-box"><h3 style="margin-top:0;">新しい世界を作る</h3><input type="text" id="newWorldName" placeholder="世界の名前（最大15文字）" maxlength="15"><input type="password" id="newWorldPass" placeholder="編集用パスワード（任意）"><div class="modal-flex"><button class="modal-btn" onclick="closeModal('create-world-modal')">キャンセル</button><button class="modal-btn" onclick="createNewWorld()">作成</button></div></div></div>
+<div id="lock-modal" class="modal-overlay"><div class="modal-box"><h3 style="margin-top:0;">ロックされています</h3><input type="password" id="worldPassInput" placeholder="パスワードを入力"><div class="modal-flex"><button class="modal-btn" onclick="closeModal('lock-modal')">キャンセル</button><button class="modal-btn" onclick="unlockWorld()">解除</button></div></div></div>
+<div id="fa-modal" class="modal-overlay"><div class="modal-box"><h3 style="margin-top:0;">イラストを投稿する</h3><input type="file" id="faFileInput" accept=".jpg,.jpeg,.png,.webp" style="width:100%; margin-bottom:10px;" onchange="handleFaFileSelect(event)"><input type="text" id="faTextInput" placeholder="文字欄（30文字まで）" maxlength="30" style="width:100%;"><p style="font-size:11px; color:red; text-align:left; font-weight:bold; margin-top:10px;">⚠️一度投下したイラストは消去・編集できません！</p><div class="modal-flex"><button class="modal-btn" onclick="closeModal('fa-modal')">キャンセル</button><button class="modal-btn" onclick="submitFaItem()">投下</button></div></div></div>
+
+<div id="board-modal" class="modal-overlay">
+    <div class="modal-box">
+        <h3 id="board-modal-title" style="margin-top:0;">企画を投稿する</h3>
+        <div id="board-modal-name-area">
+            <input type="text" id="boardNameInput" placeholder="投稿者の名前（最大10文字）" maxlength="10">
+        </div>
+        <textarea id="boardBodyInput" placeholder="本文（最大100文字） URLを載せる場合はここにそのまま入力してください。" maxlength="100" style="height:80px;"></textarea>
+        <div class="modal-flex">
+            <button class="modal-btn" onclick="closeModal('board-modal')">キャンセル</button>
+            <button class="modal-btn" style="font-weight:bold; color:green;" onclick="submitBoardItem()">投稿する</button>
+        </div>
+    </div>
+</div>
+
+<script>
+const worldPresetMap = {
+    'アジア': {
+        '東': ['🇰🇷', '🇹🇼', '🇨🇳', '🇰🇵', '🇯🇵', '🇭🇰', '🇲🇴', '🇲🇳'],
+        '東南': ['🇮🇩', '🇰🇭', '🇸🇬', '🇹🇭', '🇵🇰', '🇹🇱', '🇵🇭', '🇧🇳', '🇻🇳', '🇲🇾', '🇲🇲', '🇱🇦'],
+        '南': ['🇮🇳', '🇱🇰', '🇳🇵', '🇵🇰', '🇵🇸', '🇧🇩', '🇧🇹', '🇲🇻'], 
+        '中央': ['🇺🇿', '🇰🇿', '🇰🇬', '🇹🇯', '🇹🇲'],
+        '中東': ['🇦🇿', '🇦🇪', '🇦🇲', '🇾🇪', '🇮🇱', '🇮🇶', '🇮🇷', '🇴🇲', '🇶🇦', '🇨🇾', '🇰🇼', '🇸🇦', '🇬🇪', '🇸🇾', '🇹🇷', '🇧🇭', '🇯🇴', '🇱🇧']
+    },
+    'ヨーロッパ': {
+        '北': ['🇮🇸', '🇮🇪', '🇬🇧', '🇪🇪', '🇸🇪', '🇩🇰', '🇳🇴', '🇫🇮', '🇫🇴', '🇱🇻', '🇱🇹'],
+        '西': ['🇦🇹', '🇳🇱', '🇨🇭', '🇩🇪', '🇫🇷', '🇧🇪', '🇲🇨', '🇱🇮', '🇱🇺'],
+        '南': ['🇦🇱', '🇦🇩', '🇮🇹', '🇲🇰', '🇬🇷', '🇭🇷', '🇽🇰', '🇸🇲', '🇬🇮', '🇪🇸', '🇸🇮', '🇷🇸', '🇻🇦', '🇧🇦', '🇵🇹', '🇲🇹', '🇲🇪'],
+        '東': ['🇺🇦', '🇸🇰', '🇨🇿', '🇭🇺', '🇧🇬', '🇧🇾', '🇵🇱', '🇲🇩', '🇷🇴', '🇷🇺']
+    },
+    'アフリカ': {
+        '北': ['🇩🇿', '🇪🇬', '🇮🇨', '🇹🇳', '🇪🇭', '🇲🇦', '🇱🇾'],
+        '西・中': ['🇦🇴', '🇬🇭', '🇨🇻', '🇬🇦', '🇨🇲', '🇬🇲', '🇬🇳', '🇬🇼', '🇨🇮', '🇨🇬', '🇨🇩', '🇸🇹', '🇸🇱', '🇬🇶', '🇸🇳', '🇹🇩', '🇨🇫', '🇹🇬', '🇳🇬', '🇳🇪', '🇧🇫', '🇧🇯', '🇲🇱', '🇲🇷', '🇱🇷'],
+        '東・南': ['🇺🇬', '🇸🇿', '🇪🇹', '🇪🇷', '🇰🇪', '🇰🇲', '🇿🇲', '🇩🇯', '🇿🇼', '🇸🇩', '🇸🇨', '🇸🇴', '🇹🇿', '🇳🇦', '🇧🇮', '🇧🇼', '🇲🇬', '🇲🇼', '🇿🇦', '🇸🇸', '🇲🇺', '🇲🇿', '🇷🇼', '🇱🇸', '🇷🇪']
+    },
+    '北・中央アメリカ': {
+        '北・中': ['🇺🇸', '🇸🇻', '🇨🇦', '🇬🇱', '🇨🇺', '🇬🇹', '🇨🇷', '🇳🇮', '🇵🇦', '🇧🇸', '🇧🇲', '🇧🇿', '🇭🇳', '🇲🇽'],
+        'カリブ': ['🇦🇼', '🇦🇬', '🇻🇮', '🇨🇼', '🇬🇵', '🇬🇩', '🇯🇲', '🇸🇽', '🇰🇳', '🇻🇨', '🇱🇨', '🇩🇴', '🇩🇲', '🇹🇹', '🇭🇹','🇧🇧', '🇵🇷', '🇲🇶']
+    },
+    '南アメリカ': {
+        '南': ['🇦🇷', '🇺🇾', '🇪🇨', '🇬🇾', '🇨🇴', '🇸🇷', '🇨🇱', '🇵🇾', '🇫🇰', '🇧🇷', '🇬🇫', '🇻🇪', '🇵🇪', '🇧🇴']
+    },
+    'オーストラリア': {
+        'オセアニア': ['🇦🇸', '🇦🇺', '🇲🇵', '🇰🇮', '🇬🇺', '🇨🇰', '🇼🇸', '🇸🇧', '🇹🇻', '🇹🇴', '🇳🇷', '🇦🇶', '🇳🇺', '🇳🇨', '🇳🇿', '🇻🇺', '🇵🇬', '🇵🇼', '🇫🇯', '🇲🇭', '🇫🇲']
+    }
+};
+
+let worldsData = []; 
+let faData = []; 
+let eventBoardData = []; 
+let currentWorldIndex = null;
+let currentContinent = '';
+let currentFlag = '';
+let isAdminUnlocked = false;  
+let adminWelcomeText = "※文字欄\n（総合管理者専用）";
+let bgImageUrl = "";
+let currentFormImages = []; 
+let activeSlotIndex = null;
+let isTargetPinned = false; 
+let tempFaImageBase64 = "";
+
+function syncCounter(textareaId, counterId, maxLen) {
+    const ta = document.getElementById(textareaId);
+    const counter = document.getElementById(counterId);
+    if (ta && counter) {
+        const remaining = maxLen - ta.value.length;
+        counter.innerText = `残り ${remaining}`;
+        if (remaining <= 0) counter.style.color = 'red';
+        else if (remaining <= 100) counter.style.color = 'orange';
+        else counter.style.color = '#666';
+    }
+}
+
+function openLightbox(imageSrc, captionText = '') {
+    if (!imageSrc || imageSrc.trim() === "") return;
+    const overlay = document.getElementById('lightboxOverlay');
+    const img = document.getElementById('lightboxImg');
+    const caption = document.getElementById('lightboxCaption');
+    img.src = imageSrc;
+    if (captionText) {
+        caption.innerText = captionText; caption.style.display = 'block';
+    } else {
+        caption.innerText = ''; caption.style.display = 'none';
+    }
+    overlay.classList.add('active');
+}
+
+function closeLightbox() {
+    document.getElementById('lightboxOverlay').classList.remove('active');
+    document.getElementById('lightboxImg').src = '';
+}
+
+function validateImageFile(file) {
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+    if (!allowedTypes.includes(file.type)) {
+        alert(`❌ エラー: 「${file.name}」形式非対応。\nJPG, JPEG, PNG, WEBP形式のみ。`); return false;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+        alert(`❌ エラー: 「${file.name}」容量超過。\n1枚あたり2MB以内にしてください。`); return false;
+    }
+    return true;
+}
+
+function updateStorageUsageDisplay() {
+    let totalLength = 0, worldsLength = 0, faLength = 0, boardLength = 0, settingsLength = 0;
+    for (let key in localStorage) {
+        if (localStorage.hasOwnProperty(key)) {
+            const itemLength = localStorage[key].length * 2;
+            totalLength += itemLength;
+            if (key === 'worldSystem_worldsData') worldsLength += itemLength;
+            else if (key === 'worldSystem_faData') faLength += itemLength;
+            else if (key === 'worldSystem_eventBoardData') boardLength += itemLength;
+            else if (key.startsWith('worldSystem_')) settingsLength += itemLength;
+        }
+    }
+    const totalMB = totalLength / (1024 * 1024), worldsMB = worldsLength / (1024 * 1024), faMB = faLength / (1024 * 1024), boardMB = boardLength / (1024 * 1024), settingsMB = settingsLength / (1024 * 1024);
+    const maxMB = 5, percentage = Math.min((totalMB / maxMB) * 100, 100);
+    const storageArea = document.getElementById('storage-info-area');
+    if(storageArea) {
+        document.getElementById('storage-text').innerText = `${totalMB.toFixed(2)}MB / ${maxMB}MB`;
+        document.getElementById('storage-bar').style.width = `${percentage}%`;
+        document.getElementById('storage-bar').style.background = percentage > 80 ? '#f44336' : (percentage > 50 ? '#ff9800' : '#4caf50');
+        document.getElementById('storage-worlds').innerText = `${worldsMB.toFixed(3)} MB`;
+        document.getElementById('storage-fa').innerText = `${faMB.toFixed(3)} MB`;
+        document.getElementById('storage-board').innerText = `${boardMB.toFixed(3)} MB`;
+        document.getElementById('storage-settings').innerText = `${settingsMB.toFixed(3)} MB`;
+    }
+    return totalMB;
+}
+
+function systemFullReset() {
+    if (!isAdminUnlocked) return;
+    if (!confirm("🚨 【重大な警告】\n全データを完全初期状態に戻します。よろしいですか？")) return;
+    if (!confirm("⚠️ 本当に削除しますか？取り消せません。")) return;
+    localStorage.clear();
+    alert("⚙️ 初期化完了しました。"); window.location.reload();
+}
+
+function applyBgImage() {
+    const topPage = document.getElementById('top');
+    if (bgImageUrl && bgImageUrl.trim() !== "") {
+        topPage.style.backgroundImage = `url('${bgImageUrl}')`;
+        document.getElementById('adminBgUrlInput').value = bgImageUrl;
+    } else {
+        topPage.style.backgroundImage = 'none'; document.getElementById('adminBgUrlInput').value = "";
+    }
+}
+
+function saveToLocalStorage() {
+    localStorage.setItem('worldSystem_worldsData', JSON.stringify(worldsData));
+    localStorage.setItem('worldSystem_faData', JSON.stringify(faData));
+    localStorage.setItem('worldSystem_eventBoardData', JSON.stringify(eventBoardData)); 
+    localStorage.setItem('worldSystem_adminText', adminWelcomeText);
+    localStorage.setItem('worldSystem_bgImageUrl', bgImageUrl); 
+    updateStorageUsageDisplay();
+}
+
+function loadFromLocalStorage() {
+    const w = localStorage.getItem('worldSystem_worldsData'), f = localStorage.getItem('worldSystem_faData'), b = localStorage.getItem('worldSystem_eventBoardData'), t = localStorage.getItem('worldSystem_adminText'), bg = localStorage.getItem('worldSystem_bgImageUrl');
+    if (w) worldsData = JSON.parse(w); if (f) faData = JSON.parse(f); if (b) eventBoardData = JSON.parse(b); if (t) adminWelcomeText = t; if (bg) bgImageUrl = bg;
+}
+
+function getFormattedDate() {
+    const now = new Date(); return `${now.getFullYear()}/${String(now.getMonth() + 1).padStart(2, '0')}/${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')} : ${String(now.getMinutes()).padStart(2, '0')}`;
+}
+
+function exportDataToJSON() {
+    const cleanWorlds = JSON.parse(JSON.stringify(worldsData));
+    cleanWorlds.forEach(w => { if (w.countries) Object.keys(w.countries).forEach(f => { if (w.countries[f].images) w.countries[f].images = []; }); });
+    const backup = { worldsData: cleanWorlds, faData: [], eventBoardData: eventBoardData, adminWelcomeText: adminWelcomeText, bgImageUrl: bgImageUrl };
+    const blob = new Blob([JSON.stringify(backup, null, 2)], { type: "application/json;charset=utf-8;" });
+    const link = document.createElement("a"); link.href = URL.createObjectURL(blob); link.download = `国擬人化_バックアップ_${Date.now()}.json`;
+    document.body.appendChild(link); link.click(); document.body.removeChild(link);
+}
+
+function importDataFromJSON(event) {
+    const file = event.target.files[0]; if (!file) return;
+    if (!confirm("⚠️ 現在の世界・掲示板データが上書きされます。よろしいですか？")) { event.target.value = ''; return; }
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            const parsed = JSON.parse(e.target.result);
+            if (!parsed || !parsed.worldsData) throw new Error("無効な形式です。");
+            worldsData = parsed.worldsData; eventBoardData = parsed.eventBoardData || [];
+            if (parsed.adminWelcomeText !== undefined) adminWelcomeText = parsed.adminWelcomeText;
+            if (parsed.bgImageUrl !== undefined) bgImageUrl = parsed.bgImageUrl;
+            saveToLocalStorage(); applyBgImage(); refreshAdminInfoView(); renderWorlds(); alert("📂 復元が成功しました！");
+        } catch (err) { alert(`❌ インポート失敗: ${err.message}`); }
+        event.target.value = '';
+    };
+    reader.readAsText(file, "UTF-8");
+}
+
+function show(id) {
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    const target = document.getElementById(id);
+    if(target) target.classList.add('active');
+    if(id === 'fa') renderFaList();
+}
+
+function openModal(id) { const m = document.getElementById(id); if(m) m.classList.add('active'); }
+function closeModal(id) { const m = document.getElementById(id); if(m) m.classList.remove('active'); }
+function openCreateWorldModal() { document.getElementById('newWorldName').value = ''; document.getElementById('newWorldPass').value = ''; openModal('create-world-modal'); }
+
+function countPublicCountriesInContinent(world, continentName) {
+    let count = 0; if (!world || !world.countries) return 0;
+    if (worldPresetMap[continentName]) {
+        Object.keys(worldPresetMap[continentName]).forEach(r => { worldPresetMap[continentName][r].forEach(f => { if (world.countries[f] && world.countries[f].isPublic) count++; }); });
+    }
+    for (let i = 1; i <= 10; i++) { if (world.countries[`${continentName}_custom_${i}`] && world.countries[`${continentName}_custom_${i}`].isPublic) count++; }
+    return count;
+}
+
+function renderWorlds() {
+    const container = document.getElementById('world-list-container'); container.innerHTML = '';
+    if(worldsData.length === 0) { container.innerHTML = '<p style="text-align:center; color:#999; margin:20px 0;">世界がありません。</p>'; return; }
+    worldsData.forEach((w, idx) => {
+        let totalPublic = 0; Object.keys(worldPresetMap).forEach(c => { totalPublic += countPublicCountriesInContinent(w, c); });
+        container.insertAdjacentHTML('beforeend', `
+            <div class="box flex-space">
+                <div><strong>${w.name}</strong><div class="small-text" style="color: green; font-weight: bold;">公開国：${totalPublic}</div></div>
+                <div><button onclick="clickViewWorld(${idx})">閲覧</button><button onclick="clickEditWorld(${idx})">編集</button></div>
+            </div>
+        `);
+    });
+}
+
+function clickViewWorld(index) {
+    currentWorldIndex = index; const world = worldsData[index];
+    document.getElementById('view-continents-title').innerText = `閲覧＜${world.name}`;
+    const container = document.getElementById('view-continents-buttons-container'); container.innerHTML = '';
+    let hasContent = false;
+    Object.keys(worldPresetMap).forEach(c => {
+        if (countPublicCountriesInContinent(world, c) > 0) {
+            hasContent = true; container.insertAdjacentHTML('beforeend', `<button class="menu-btn" onclick="showCountriesList('${c}', false)">${c}</button>`);
+        }
+    });
+    if (!hasContent) container.innerHTML = '<p style="text-align:center; color:#999; margin:20px 0;">公開国がありません。</p>';
+    show('view-continents');
+}
+
+let lockedWorldIndex = null;
+function clickEditWorld(index) {
+    if (worldsData[index].password && worldsData[index].password.trim() !== "" && !isAdminUnlocked) {
+        lockedWorldIndex = index; document.getElementById('worldPassInput').value = ''; openModal('lock-modal');
+    } else { openEditWorld(index); }
+}
+
+function unlockWorld() {
+    if (worldsData[lockedWorldIndex].password === document.getElementById('worldPassInput').value) {
+        closeModal('lock-modal'); openEditWorld(lockedWorldIndex);
+    } else { alert('❌ パスワードが違います！'); }
+}
+
+function openEditWorld(index) {
+    currentWorldIndex = index; document.getElementById('edit-continents-title').innerText = `編集＜${worldsData[index].name}`;
+    document.getElementById('editWorldPassInput').value = worldsData[index].password || '';
+    const container = document.getElementById('edit-continents-buttons-container'); container.innerHTML = '';
+    Object.keys(worldPresetMap).forEach(c => { container.insertAdjacentHTML('beforeend', `<button class="menu-btn" style="border-style:dashed;" onclick="showCountriesList('${c}', true)">${c}</button>`); });
+    show('edit-continents');
+}
+
+function changeWorldPassword() {
+    worldsData[currentWorldIndex].password = document.getElementById('editWorldPassInput').value; saveToLocalStorage(); alert('🔑 パスワードを変更しました。');
+}
+
+function deleteCurrentWorld() {
+    if(confirm('🗑️ この世界を完全に削除しますか？')) { worldsData.splice(currentWorldIndex, 1); saveToLocalStorage(); renderWorlds(); show('worlds'); }
+}
+
+function showCountriesList(continent, isEdit) {
+    currentContinent = continent; const world = worldsData[currentWorldIndex];
+    if (isEdit) {
+        document.getElementById('edit-countries-title').innerText = `編集＜${continent}`;
+        const slots = document.getElementById('free-country-slots-container'); slots.innerHTML = '';
+        for (let i = 1; i <= 10; i++) {
+            const key = `${continent}_custom_${i}`, has = world.countries && world.countries[key], lbl = ["①","②","③","④","⑤","⑥","⑦","⑧","⑨","⑩"][i-1];
+            slots.insertAdjacentHTML('beforeend', `<button onclick="openCountryForm('${key}')" style="padding: 6px 10px; border: 2px solid #000; border-radius: 8px; cursor: pointer; ${has ? 'background:#fffde6; font-weight:bold;' : 'background:#fff; color:#999;'} font-size:11px;">${lbl}${has ? ' ✏️' : ''}</button>`);
+        }
+        const container = document.getElementById('edit-regions-container'); container.innerHTML = '';
+        Object.keys(worldPresetMap[continent]).forEach(r => {
+            container.insertAdjacentHTML('beforeend', `<div class="region-section-title">${r}</div>`);
+            let gridHtml = `<div class="flag-grid">`;
+            worldPresetMap[continent][r].forEach(f => {
+                gridHtml += `<div class="flag-cell"><span class="flag-icon-click" onclick="openCountryForm('${f}')">${f}</span><span class="plus-badge">${(world.countries && world.countries[f]) ? '✏️':'＋'}</span></div>`;
+            });
+            container.insertAdjacentHTML('beforeend', gridHtml + `</div>`);
+        });
+        show('edit-countries');
+    } else {
+        document.getElementById('view-countries-title').innerText = `閲覧＜${continent}`;
+        const container = document.getElementById('view-regions-container'); container.innerHTML = '';
+        let customHtml = '';
+        for (let i = 1; i <= 10; i++) {
+            const key = `${continent}_custom_${i}`, c = world.countries ? world.countries[key] : null;
+            if (c && c.isPublic) customHtml += `<button class="menu-btn" style="margin-bottom:8px; padding:10px;" onclick="viewCountryDetail('${key}', 'view-countries')">${c.customName || '特別枠 '+["①","②","③","④","⑤","⑥","⑦","⑧","⑨","⑩"][i-1]}</button>`;
+        }
+        if (customHtml) container.insertAdjacentHTML('beforeend', `<div class="region-section-title">特別枠</div><div style="margin-top:5px;">${customHtml}</div>`);
+        Object.keys(worldPresetMap[continent]).forEach(r => {
+            let gridHtml = `<div class="flag-grid">`, hasF = false;
+            worldPresetMap[continent][r].forEach(f => {
+                if (world.countries && world.countries[f] && world.countries[f].isPublic) { hasF = true; gridHtml += `<div class="flag-cell"><span class="flag-icon-click" onclick="viewCountryDetail('${f}', 'view-countries')">${f}</span></div>`; }
+            });
+            if (hasF) container.insertAdjacentHTML('beforeend', `<div class="region-section-title">${r}</div>` + gridHtml + `</div>`);
+        });
+        show('view-countries');
+    }
+}
+
+function triggerFormFileSlot(idx) {
+    if (currentFormImages[idx]) {
+        openLightbox(currentFormImages[idx]);
+    } else {
+        activeSlotIndex = idx;
+        document.getElementById('dashboard-hidden-file-input').click();
+    }
+}
+
+function handleDashboardFileChange(event) {
+    const file = event.target.files[0]; if (!file || activeSlotIndex === null) return;
+    if (!validateImageFile(file)) { event.target.value = ''; return; }
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        currentFormImages[activeSlotIndex] = e.target.result;
+        renderFormSlotsPreview();
+    };
+    reader.readAsDataURL(file);
+    event.target.value = '';
+}
+
+function removeFormSlotImage(idx, event) {
+    event.stopPropagation();
+    currentFormImages[idx] = null;
+    renderFormSlotsPreview();
+}
+
+function renderFormSlotsPreview() {
+    for (let i = 0; i < 6; i++) {
+        const slot = document.getElementById(`f-img-slot-${i}`);
+        if (!slot) continue;
+        if (currentFormImages[i]) {
+            slot.innerHTML = `<img src="${currentFormImages[i]}"><div class="img-delete-btn" onclick="removeFormSlotImage(${i}, event)">✕</div>`;
+        } else {
+            let label = "横長";
+            if(i === 0 || i === 1) label = "縦長";
+            if(i === 2 || i === 3) label = "正方形";
+            slot.innerHTML = `<div class="dummy-txt">画像 ${i + 1}<br>(${label})<br><span style="font-size:10px;color:#aaa;">＋追加</span></div>`;
+        }
+    }
+}
+
+function openCountryForm(flag) {
+    currentFlag = flag; const world = worldsData[currentWorldIndex];
+    const c = (world.countries && world.countries[flag]) ? world.countries[flag] : { isPublic: true, isRandom: true, images: [], info: '', relations: [], history: '', notes: '', customName: '' };
+    const isCustom = flag.includes('_custom_');
+    document.getElementById('form-custom-name-area').style.display = isCustom ? 'block' : 'none';
+    if (isCustom) {
+        document.getElementById('form-country-title').innerText = `自由追加枠【${["①","②","③","④","⑤","⑥","⑦","⑧","⑨","⑩"][flag.split('_').pop()-1]}】の編集`;
+        document.getElementById('form-custom-name').value = c.customName || '';
+    } else { document.getElementById('form-country-title').innerText = `${flag} 国の編集`; }
+    document.getElementById('form-is-public').checked = c.isPublic;
+    document.getElementById('form-is-random').checked = c.isRandom !== false;
+    document.getElementById('form-info').value = c.info || '';
+    document.getElementById('form-history').value = c.history || '';
+    document.getElementById('form-notes').value = c.notes || '';
+    syncCounter('form-info', 'counter-info', 1500); syncCounter('form-history', 'counter-history', 1500); syncCounter('form-notes', 'counter-notes', 1500);
+    
+    currentFormImages = [null, null, null, null, null, null];
+    if (c.images && Array.isArray(c.images)) {
+        c.images.forEach((img, idx) => { if (idx < 6) currentFormImages[idx] = img; });
+    }
+    renderFormSlotsPreview();
+
+    const rels = document.getElementById('form-relations-list'); rels.innerHTML = '';
+    if (c.relations && c.relations.length > 0) c.relations.forEach(r => addRelationRow(r.targetFlag, r.state));
+    else addRelationRow('', '');
+    show('country-form');
+}
+
+function addRelationRow(targetFlag, state) {
+    document.getElementById('form-relations-list').insertAdjacentHTML('beforeend', `
+        <div class="relation-row">
+            <input type="text" placeholder="国/旗" value="${targetFlag}" maxlength="15" style="width:55px; text-align:center; padding:3px; font-size:12px;" class="rel-flag">
+            <input type="text" placeholder="関係" value="${state}" maxlength="20" style="flex:1; padding:3px; font-size:12px;" class="rel-state">
+            <button type="button" onclick="this.parentElement.remove()" style="color:red; cursor:pointer; font-size:12px; padding:1px 4px;">✕</button>
+        </div>
+    `);
+}
+
+function createNewWorld() {
+    const n = document.getElementById('newWorldName').value.trim(); if(!n) { alert('名前を入力してください！'); return; }
+    worldsData.push({ name: n, password: document.getElementById('newWorldPass').value, countries: {}, updatedAt: getFormattedDate() });
+    saveToLocalStorage(); closeModal('create-world-modal'); renderWorlds();
+}
+
+function saveCountryData() {
+    const world = worldsData[currentWorldIndex]; if (!world.countries) world.countries = {};
+    const relations = [];
+    document.querySelectorAll('#form-relations-list .relation-row').forEach(row => {
+        const f = row.querySelector('.rel-flag').value.trim(), s = row.querySelector('.rel-state').value.trim();
+        if(f || s) relations.push({ targetFlag: f, state: s });
+    });
+    const compactImages = currentFormImages.filter(img => img !== null);
+
+    world.countries[currentFlag] = {
+        isPublic: document.getElementById('form-is-public').checked, isRandom: document.getElementById('form-is-random').checked,
+        info: document.getElementById('form-info').value, history: document.getElementById('form-history').value, notes: document.getElementById('form-notes').value,
+        images: compactImages, relations: relations, customName: currentFlag.includes('_custom_') ? document.getElementById('form-custom-name').value.trim() : ""
+    };
+    world.updatedAt = getFormattedDate(); saveToLocalStorage(); alert('💾 保存しました。'); showCountriesList(currentContinent, true);
+}
+
+function deleteCountryData() {
+    const world = worldsData[currentWorldIndex]; if (!world.countries || !world.countries[currentFlag]) return;
+    if (confirm(`🗑️ この国のデータを完全に初期化しますか？`)) { delete world.countries[currentFlag]; world.updatedAt = getFormattedDate(); saveToLocalStorage(); alert('🗑️ 削除しました。'); showCountriesList(currentContinent, true); }
+}
+
+function viewCountryDetail(flag, backPageId) {
+    const world = worldsData[currentWorldIndex], c = world.countries ? world.countries[flag] : null; if (!c) return;
+    const isCustom = flag.includes('_custom_');
+    if (isCustom) { document.getElementById('detail-country-title').innerText = c.customName ? `${c.customName} の情報` : `特別枠【${["①","②","③","④","⑤","⑥","⑦","⑧","⑨","⑩"][flag.split('_').pop()-1]}】の情報`; }
+    else { document.getElementById('detail-country-title').innerText = `${flag} 国の情報`; }
+    document.getElementById('detail-info').innerText = c.info || '未入力';
+    document.getElementById('detail-history').innerText = c.history || '未入力';
+    document.getElementById('detail-notes').innerText = c.notes || '未入力';
+
+    for (let i = 0; i < 6; i++) {
+        const slot = document.getElementById(`d-img-slot-${i}`);
+        if (!slot) continue;
+        if (c.images && c.images[i]) {
+            slot.innerHTML = `<img src="${c.images[i]}">`;
+            slot.onclick = (function(src) { return function() { openLightbox(src); }; })(c.images[i]);
+            slot.style.cursor = 'pointer';
+        } else {
+            let label = "横長";
+            if(i === 0 || i === 1) label = "縦長";
+            if(i === 2 || i === 3) label = "正方形";
+            slot.innerHTML = `<div class="dummy-txt">画像 ${i + 1}<br>(${label})<br><span style="font-size:9px;color:#ccc;">(未設定)</span></div>`;
+            slot.onclick = null;
+            slot.style.cursor = 'default';
+        }
+    }
+
+    const rels = document.getElementById('detail-relations-container'); rels.innerHTML = '';
+    if (c.relations && c.relations.length > 0) c.relations.forEach(r => rels.insertAdjacentHTML('beforeend', `<div><strong>${r.targetFlag || '？'}</strong>: ${r.state || 'ー'}</div>`));
+    else rels.innerHTML = '<span style="color:#999;">なし</span>';
+    document.getElementById('detail-back-btn').onclick = function() { if(backPageId === 'top') show('top'); else showCountriesList(currentContinent, false); };
+    show('country-detail');
+}
+
+function openRandomPage(globalRandom) {
+    let pool = [];
+    if (globalRandom) { worldsData.forEach((w, wIdx) => { if (w.countries) Object.keys(w.countries).forEach(f => { if (w.countries[f].isPublic && w.countries[f].isRandom !== false) pool.push({ worldIdx: wIdx, flag: f }); }); }); }
+    else { const w = worldsData[currentWorldIndex]; if (w && w.countries) Object.keys(w.countries).forEach(f => { if (w.countries[f].isPublic && w.countries[f].isRandom !== false) pool.push({ worldIdx: currentWorldIndex, flag: f }); }); }
+    if (pool.length === 0) { alert('🎲 条件に合う国がありません。'); return; }
+    const chosen = pool[Math.floor(Math.random() * pool.length)]; currentWorldIndex = chosen.worldIdx; viewCountryDetail(chosen.flag, 'top');
+}
+
+function openFaModal() { tempFaImageBase64 = ""; document.getElementById('faFileInput').value = ''; document.getElementById('faTextInput').value = ''; openModal('fa-modal'); }
+function handleFaFileSelect(event) {
+    const file = event.target.files[0]; if(!file) return; if(!validateImageFile(file)) { event.target.value = ''; return; }
+    const reader = new FileReader(); reader.onload = function(e) { tempFaImageBase64 = e.target.result; }; reader.readAsDataURL(file);
+}
+function submitFaItem() {
+    const t = document.getElementById('faTextInput').value.trim(); if(!tempFaImageBase64) { alert('⚠️ 画像を選んでください！'); return; }
+    faData.unshift({ id: Date.now().toString(), imageSrc: tempFaImageBase64, caption: t, date: getFormattedDate() });
+    saveToLocalStorage(); closeModal('fa-modal'); renderFaList();
+}
+function deleteFaItem(id) { if(confirm('投稿を削除しますか？')) { faData = faData.filter(item => item.id !== id && item.id != id); saveToLocalStorage(); renderFaList(); } }
+function renderFaList() {
+    const grid = document.getElementById('fa-list-grid'); grid.innerHTML = '';
+    if(faData.length === 0) { grid.innerHTML = '<p style="grid-column:1/-1; text-align:center; color:#999;">イラストがありません。</p>'; return; }
+    faData.forEach(item => {
+        grid.insertAdjacentHTML('beforeend', `<div class="fa-card" onclick="openLightbox('${item.imageSrc || ''}', '${item.caption || ''}')">${isAdminUnlocked ? `<span class="fa-delete-badge" onclick="event.stopPropagation(); deleteFaItem('${item.id}')">削除</span>`:''}<div class="fa-image-container"><img src="${item.imageSrc || ''}" onerror="this.style.display='none';"></div></div>`);
+    });
+}
+
+function openBoardModal(isPin) { isTargetPinned = isPin; document.getElementById('boardNameInput').value = ''; document.getElementById('boardBodyInput').value = ''; document.getElementById('board-modal-title').innerText = isPin ? '📌 固定投稿の編集':'企画を投稿する'; document.getElementById('board-modal-name-area').style.display = isPin ? 'none':'block'; openModal('board-modal'); }
+function submitBoardItem() {
+    const bodyText = document.getElementById('boardBodyInput').value.trim(); if(!bodyText) { alert('本文を入力してください！'); return; }
+    if (isTargetPinned) {
+        eventBoardData = eventBoardData.filter(b => !b.pinned); eventBoardData.unshift({ id: 'pinned_' + Date.now(), name: '管理者告知', body: bodyText, date: getFormattedDate(), pinned: true });
+    } else { eventBoardData.push({ id: Date.now().toString(), name: document.getElementById('boardNameInput').value.trim() || '名無し', body: bodyText, date: getFormattedDate(), pinned: false }); }
+    saveToLocalStorage(); closeModal('board-modal'); renderEventBoard();
+}
+function deleteBoardItem(id) { if (confirm('削除しますか？')) { eventBoardData = eventBoardData.filter(b => b.id !== id); saveToLocalStorage(); renderEventBoard(); } }
+function renderEventBoard() {
+    const container = document.getElementById('board-list-container'); container.innerHTML = '';
+    const list = [...eventBoardData.filter(b => b.pinned), ...eventBoardData.filter(b => !b.pinned).reverse()];
+    if(list.length === 0) { container.innerHTML = '<p style="text-align:center; color:#999;">投稿がありません。</p>'; return; }
+    list.forEach(item => {
+        container.insertAdjacentHTML('beforeend', `<div class="${item.pinned ? 'board-card pinned':'board-card'}"><div style="display:flex; justify-content:space-between;">${item.pinned ? '<span class="board-badge pin-badge">📌 告知</span>':`<span class="board-badge user-badge">👤 ${item.name}</span>`}${isAdminUnlocked ? `<button class="board-delete-btn" onclick="deleteBoardItem('${item.id}')">🗑️ 削除</button>`:''}</div><div class="board-body">${linkify(item.body)}</div><div class="board-meta"><span>${item.date}</span></div></div>`);
+    });
+}
+function linkify(t) { return t.replace(/(\b(https?|ftp|file):\/\/[-A-Z0-9+&@#\/%?=~_|!:,.;]*[-A-Z0-9+&@#\/%=~_|])/ig, '<a href="$1" target="_blank">$1</a>'); }
+
+function refreshAdminInfoView() {
+    const container = document.getElementById('admin-info-area'), storage = document.getElementById('storage-info-area'), pin = document.getElementById('admin-pin-btn-area'), bg = document.getElementById('admin-bg-setting-area'), rst = document.getElementById('admin-reset-zone');
+    if (isAdminUnlocked) {
+        container.innerHTML = `<textarea style="width:100%; height:80px; border:1px dashed green; font-weight:bold; text-align:center;" oninput="adminWelcomeText=this.value">${adminWelcomeText}</textarea>`;
+        if(storage) storage.style.display = 'block'; if(pin) pin.style.display = 'block'; if(bg) bg.style.display = 'block'; if(rst) rst.style.display = 'block'; updateStorageUsageDisplay();
+    } else {
+        container.innerHTML = `<p id="admin-info-text" style="text-align:center; color:#000; font-weight:bold; margin:20px 0; white-space:pre-wrap;"></p>`;
+        document.getElementById('admin-info-text').innerText = adminWelcomeText;
+        if(storage) storage.style.display = 'none'; if(pin) pin.style.display = 'none'; if(bg) bg.style.display = 'none'; if(rst) rst.style.display = 'none';
+    }
+    if(document.getElementById('event-board').classList.contains('active')) renderEventBoard();
+    if(document.getElementById('fa').classList.contains('active')) renderFaList();
+}
+
+function handleAdminAuth() {
+    const p = document.getElementById("adminPass"), s = document.getElementById("adminStatus"), t = document.getElementById("adminToggleBtn");
+    if (isAdminUnlocked) { isAdminUnlocked = false; t.innerText = "🔒"; s.innerText = ""; p.value = ""; refreshAdminInfoView(); saveToLocalStorage(); }
+    else { if(p.value === "master123") { isAdminUnlocked = true; t.innerText = "🔓"; s.innerText = "🔓 解除中"; refreshAdminInfoView(); } else { alert("❌ パスワード不一致"); } }
+}
+
+window.onload = function() { loadFromLocalStorage(); applyBgImage(); refreshAdminInfoView(); renderWorlds(); };
+</script>
+</body>
+</html>
