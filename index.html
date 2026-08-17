@@ -945,7 +945,7 @@ function showCountriesList(continent, isEdit) {
         });
         show('edit-countries');
     } else {
-
+        document.getElementById('view-countries-title').innerText = `閲覧＜${continent}`;
         const container = document.getElementById('view-regions-container'); container.innerHTML = '';
         let customHtml = '';
         for (let i = 1; i <= 10; i++) {
@@ -1102,7 +1102,7 @@ function viewCountryDetail(flag, backPageId) {
         const cName = c.customName ? c.customName : `特別枠【${["①","②","③","④","⑤","⑥","⑦","⑧","⑨","⑩"][flag.split('_').pop()-1]}】`;
         document.getElementById('detail-country-title').innerText = `${cName} の設定` + (worldName ? ` / ${worldName}` : '');
     } else { 
-        document.getElementById('detail-country-title').innerText = `${flag} 国の設定` + (worldName ? ` / ${worldName}` : '');
+        document.getElementById('detail-country-title').innerText = `${flag} の設定` + (worldName ? ` / ${worldName}` : '');
     }
 
     // 各項目の動的タイトル反映処理を追加
