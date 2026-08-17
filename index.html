@@ -180,6 +180,8 @@ textarea { width: 100%; box-sizing: border-box; border: 2px solid #000; border-r
     background: rgba(255, 255, 255, 0.95);
     box-sizing: border-box;
     min-height: 120px;
+    overflow-y: auto;          /* 枠からはみ出た部分をスクロール化 */
+    max-height: 100%;          /* 親グリッドの枠内に大きさを収める */
 }
 
 .single-image-wrapper {
